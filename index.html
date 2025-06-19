@@ -9,132 +9,7 @@
   <link rel="icon" href="canas.png">
 </head>
 <body>
-  <header class="topbar">
-    <div class="menu-toggle" id="menu-toggle">☰</div>
-    <p class="topbar-title">Canasta Boliviana</p>
-  </header>
-
-  <aside class="sidebar hidden" id="sidebar">
-    <h2>Menú</h2>
-    <nav>
-      <ul>
-        <li onclick="mostrarSeccion('registro')">Registrar Precio</li>
-        <li onclick="mostrarSeccion('estadisticas')">Estadísticas</li>
-      </ul>
-    </nav>
-  </aside>
-
-  <main class="content">
-    <!-- Registrar Precio -->
-    <section id="registro" class="card">
-      <h3>Registrar Precio</h3>
-
-      <div class="form-group">
-        <label>Producto</label>
-        <select name="Producto" id="Producto" onchange="CargarUnidades()">
-          <option disabled selected>Selecciona El Producto</option>
-          <option value="Arroz">Arroz</option>
-          <option value="Fideo">Fideo</option>
-          <option value="Harina">Harina</option>
-          <option value="Leche en polvo">Leche en polvo</option>
-          <option value="Carne de res">Carne de res</option>
-          <option value="Carne de pollo">Carne de pollo</option>
-          <option value="Papa">Papa</option>
-          <option value="Cebolla">Cebolla</option>
-          <option value="Zanahoria">Zanahoria</option>
-          <option value="Tomate">Tomate</option>
-          <option value="Huevo">Huevo</option>
-          <option value="Pescado">Pescado</option>
-          <option value="Aceite">Aceite</option>
-          <option value="Lenteja">Lenteja</option>
-          <option value="Ajo">Ajo</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Precio (Bs)</label>
-        <input type="number" id="precio" placeholder="Ej. 8.50" />
-      </div>
-
-      <div class="form-group">
-        <label>Unidad</label>
-        <select id="equivalencia">
-          <option disabled selected>Selecciona la Unidad</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Ciudad</label>
-        <select id="ciudad">
-          <option disabled selected>Selecciona Ciudad</option>
-          <option>La Paz</option>
-          <option>Cochabamba</option>
-          <option>Santa Cruz</option>
-          <option>Oruro</option>
-          <option>Chuquisaca</option>
-          <option>Potosi</option>
-          <option>Tarija</option>
-          <option>Bani</option>
-          <option>Pando</option>
-        </select>
-      </div>
-
-      <button id="btn-reportar">Registrar Precio</button>
-      <div id="toast" class="toast hidden"></div>
-
-      <!-- Listado de precios -->
-      <h3 style="margin-top:30px;">Listado de Precios</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Precio (Bs)</th>
-            <th>Unidad</th>
-            <th>Ciudad</th>
-          </tr>
-        </thead>
-        <tbody id="tabla-precios">
-          <tr><td colspan="4">No hay datos registrados.</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- Estadísticas -->
-    <section id="estadisticas" class="card hidden">
-      <h3>Estadísticas Generales</h3>
-      <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <label for="filtro-periodo">Filtrar por:</label>
-        <select id="filtro-periodo">
-          <option value="dia">Día</option>
-          <option value="semana" selected>Semana</option>
-          <option value="mes">Mes</option>
-        </select>
-        <input type="date" id="selector-fecha" />
-      </div>
-      <table>
-        <thead>
-          <tr><th>Producto</th></tr>
-        </thead>
-        <tbody id="tabla-estadisticas">
-          <tr><td>No hay datos registrados.</td></tr>
-        </tbody>
-      </table>
-
-      <div id="detalle-estadisticas" class="card hidden" style="margin-top: 20px;">
-        <h4>Detalle del Producto</h4>
-        <p id="detalle-contenido">Selecciona un producto para ver sus detalles.</p>
-      </div>
-
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-        <button id="btn-semana-anterior">← Semana anterior</button>
-        <span id="titulo-semana" style="font-weight:bold;"></span>
-        <button id="btn-semana-siguiente" disabled>Semana siguiente →</button>
-      </div>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
-  <script type="module">
+<script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
   // TODO: Add SDKs for Firebase products that you want to use
@@ -153,5 +28,149 @@
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
 </script>
+
+
+  <header class="topbar">
+    <div class="menu-toggle" id="menu-toggle">☰</div>
+    <p class="topbar-title">Canasta Boliviana</p>
+  </header>
+
+  <aside class="sidebar hidden" id="sidebar">
+    <h2>Menú</h2>
+    <nav>
+      <ul>
+        <li onclick="mostrarSeccion('registro')">Registrar Precio</li>
+        <li onclick="mostrarSeccion('estadisticas')">Estadísticas</li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <!-- Registrar Precio + Listado -->
+    <section id="registro" class="card">
+      <h3>Registrar Precio</h3>
+      <!--<div class="form-group">
+        <label>Producto</label>
+        <input type="text" id="producto" placeholder="Ej. Arroz" />
+      </div>-->
+      <select name="Producto" id="Producto" onchange="CargarUnidades()">
+        <option disabled selected>Selecciona El Producto</option>
+        <option value="Arroz">Arroz</option>
+        <option value="Fideo">Fideo</option>
+        <option value="Harina">Harina</option>
+        <option value="Leche en polvo">Leche en polvo</option>
+        <option value="Carne de res">Carne de res</option>
+        <option value="Carne de pollo">Carne de pollo</option>
+        <option value="Papa">Papa</option>
+        <option value="Cebolla">Cebolla</option>
+        <option value="Zanahoria">Zanahoria</option>
+        <option value="Tomate">Tomate</option>
+        <option value="Huevo">Huevo</option>
+        <option value="Pescado">Pescado</option>
+        <option value="Aceite">Aceite</option>
+        <option value="Lenteja">Lenteja</option>
+        <option value="Ajo">Ajo</option>
+      </select>
+      <div class="form-group">
+        <label>Precio (Bs)</label>
+        <input type="number" id="precio" placeholder="Ej. 8.50" />
+      </div>
+      <div class="form-group">
+        <label>Unidad</label>
+        <select id="equivalencia">
+          <option disabled selected>Selecciona la Unidad</option>
+          <option>g</option>
+          <option>kg</option>
+          <option>lb</option>
+          <option>q</option>
+          <option>t</option>
+          <option>Arroba</option>
+          <p>para liquidos</p>
+          <option>ml</option>
+          <option>l</option>
+          <option>gal</option>
+          <option>bbl</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ciudad</label>
+        <select id="ciudad">
+          <option disabled selected>Selecciona Ciudad</option>
+          <option>La Paz</option>
+          <option>Cochabamba</option>
+          <option>Santa Cruz</option>
+          <option>Oruro</option>
+          <option>Chuquisaca</option>
+          <option>Potosi</option>
+          <option>Tarija</option>
+          <option>Bani</option>
+          <option>Pando</option>
+        </select>
+      </div>
+      <button id="btn-reportar">Registrar Precio</button>
+      <div id="toast" class="toast hidden"></div>
+
+      <!-- Listado de precios debajo del registro -->
+      <h3 style="margin-top:30px;">Listado de Precios</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Precio (Bs)</th>
+            <th>Unidad</th>
+            <th>Ciudad</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-precios">
+          <tr><td colspan="4">No hay datos registrados.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Estadísticas -->
+   <!-- Estadísticas -->
+<section id="estadisticas" class="card hidden">
+  <h3>Estadísticas Generales</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+      </tr>
+    </thead>
+    <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+  <label for="filtro-periodo">Filtrar por:</label>
+  <select id="filtro-periodo">
+    <option value="dia">Día</option>
+    <option value="semana" selected>Semana</option>
+    <option value="mes">Mes</option>
+  </select>
+
+  <input type="date" id="selector-fecha" />
+</div>
+
+    <tbody id="tabla-estadisticas">
+      <tr><td>No hay datos registrados.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Aquí aparecerá el detalle dinámico -->
+  <div id="detalle-estadisticas" class="card hidden" style="margin-top: 20px;">
+    <h4>Detalle del Producto</h4>
+    <p id="detalle-contenido">Selecciona un producto para ver sus detalles.</p>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+  <button id="btn-semana-anterior">← Semana anterior</button>
+  <span id="titulo-semana" style="font-weight:bold;"></span>
+  <button id="btn-semana-siguiente" disabled>Semana siguiente →</button>
+  
+</div>
+
+
+</section>
+
+
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
