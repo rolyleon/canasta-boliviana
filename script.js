@@ -19,6 +19,8 @@ function CargarUnidades() {
     { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
+  let opciones = [];
+
   if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) {
     opciones = unidadesLiquidos;
   } else if (producto === 'Huevo') {
@@ -49,7 +51,7 @@ function obtenerClaveSemana(fecha) {
 function fechasSemana(year, week) {
   const simple = new Date(year, 0, 1 + (week - 1) * 7);
   const dow = simple.getDay();
-  const ISOweekStart = simple;
+  const ISOweekStart = new Date(simple);
   if (dow <= 4) {
     ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
   } else {
@@ -273,48 +275,4 @@ document.getElementById('btn-reportar').addEventListener('click', () => {
   const precioInput = document.getElementById('precio');
   const precio = parseFloat(precioInput.value);
   const equivalencia = document.getElementById('equivalencia').value;
-  const ciudad = document.getElementById('ciudad').value;
-
-  if (
-    producto !== 'Selecciona El Producto' &&
-    !isNaN(precio) && precio > 0 &&
-    equivalencia !== 'Selecciona la Unidad' &&
-    ciudad !== 'Selecciona Ciudad'
-  ) {
-    const nuevoRegistro = {
-      producto,
-      precio,
-      equivalencia,
-      ciudad,
-      fecha: new Date().toISOString()
-    };
-    guardarRegistroSemanal(nuevoRegistro);
-    limpiarFormulario();
-    mostrarToast('Precio guardado con éxito.', '#27ae60');
-    mostrarDatosSemana();
-  } else {
-    mostrarToast('Por favor, completa todos los campos correctamente.', '#e74c3c');
-  }
-});
-
-function limpiarFormulario() {
-  document.getElementById('Producto').selectedIndex = 0;
-  document.getElementById('precio').value = '';
-  document.getElementById('equivalencia').innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
-  document.getElementById('ciudad').selectedIndex = 0;
-}
-
-function mostrarToast(msg, color) {
-  toast.textContent = msg;
-  toast.style.background = color;
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
-}
-
-// Inicializar
-document.getElementById('Producto').addEventListener('change', CargarUnidades);
-
-window.addEventListener('load', () => {
-  mostrarDatosSemana();
-  CargarUnidades();
-});
+  const ciudad = document.getElementById('ci
