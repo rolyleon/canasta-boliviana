@@ -10,12 +10,9 @@
 </head>
 <body>
 <script type="module">
-  // Import the functions you need from the SDKs you need
+  // Importar Firebase (puedes ajustar aquí si usas Firebase en otro archivo)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
     authDomain: "canasta-boliviana.firebaseapp.com",
@@ -25,10 +22,9 @@
     appId: "1:995591486402:web:51517ae579805d2a43f45b"
   };
 
-  // Initialize Firebase
+  // Inicializa Firebase
   const app = initializeApp(firebaseConfig);
 </script>
-
 
   <header class="topbar">
     <div class="menu-toggle" id="menu-toggle">☰</div>
@@ -49,10 +45,6 @@
     <!-- Registrar Precio + Listado -->
     <section id="registro" class="card">
       <h3>Registrar Precio</h3>
-      <!--<div class="form-group">
-        <label>Producto</label>
-        <input type="text" id="producto" placeholder="Ej. Arroz" />
-      </div>-->
       <select name="Producto" id="Producto" onchange="CargarUnidades()">
         <option disabled selected>Selecciona El Producto</option>
         <option value="Arroz">Arroz</option>
@@ -71,10 +63,12 @@
         <option value="Lenteja">Lenteja</option>
         <option value="Ajo">Ajo</option>
       </select>
+
       <div class="form-group">
         <label>Precio (Bs)</label>
         <input type="number" id="precio" placeholder="Ej. 8.50" />
       </div>
+
       <div class="form-group">
         <label>Unidad</label>
         <select id="equivalencia">
@@ -85,13 +79,13 @@
           <option>q</option>
           <option>t</option>
           <option>Arroba</option>
-          <p>para liquidos</p>
           <option>ml</option>
           <option>l</option>
           <option>gal</option>
           <option>bbl</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>Ciudad</label>
         <select id="ciudad">
@@ -107,10 +101,10 @@
           <option>Pando</option>
         </select>
       </div>
+
       <button id="btn-reportar">Registrar Precio</button>
       <div id="toast" class="toast hidden"></div>
 
-      <!-- Listado de precios debajo del registro -->
       <h3 style="margin-top:30px;">Listado de Precios</h3>
       <table>
         <thead>
@@ -128,47 +122,39 @@
     </section>
 
     <!-- Estadísticas -->
-   <!-- Estadísticas -->
-<section id="estadisticas" class="card hidden">
-  <h3>Estadísticas Generales</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Producto</th>
-      </tr>
-    </thead>
-    <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-  <label for="filtro-periodo">Filtrar por:</label>
-  <select id="filtro-periodo">
-    <option value="dia">Día</option>
-    <option value="semana" selected>Semana</option>
-    <option value="mes">Mes</option>
-  </select>
+    <section id="estadisticas" class="card hidden">
+      <h3>Estadísticas Generales</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+          </tr>
+        </thead>
+        <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+          <label for="filtro-periodo">Filtrar por:</label>
+          <select id="filtro-periodo">
+            <option value="dia">Día</option>
+            <option value="semana" selected>Semana</option>
+            <option value="mes">Mes</option>
+          </select>
+          <input type="date" id="selector-fecha" />
+        </div>
+        <tbody id="tabla-estadisticas">
+          <tr><td>No hay datos registrados.</td></tr>
+        </tbody>
+      </table>
 
-  <input type="date" id="selector-fecha" />
-</div>
+      <div id="detalle-estadisticas" class="card hidden" style="margin-top: 20px;">
+        <h4>Detalle del Producto</h4>
+        <p id="detalle-contenido">Selecciona un producto para ver sus detalles.</p>
+      </div>
 
-    <tbody id="tabla-estadisticas">
-      <tr><td>No hay datos registrados.</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Aquí aparecerá el detalle dinámico -->
-  <div id="detalle-estadisticas" class="card hidden" style="margin-top: 20px;">
-    <h4>Detalle del Producto</h4>
-    <p id="detalle-contenido">Selecciona un producto para ver sus detalles.</p>
-  </div>
-  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-  <button id="btn-semana-anterior">← Semana anterior</button>
-  <span id="titulo-semana" style="font-weight:bold;"></span>
-  <button id="btn-semana-siguiente" disabled>Semana siguiente →</button>
-  
-</div>
-
-
-</section>
-
-
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <button id="btn-semana-anterior">← Semana anterior</button>
+        <span id="titulo-semana" style="font-weight:bold;"></span>
+        <button id="btn-semana-siguiente" disabled>Semana siguiente →</button>
+      </div>
+    </section>
   </main>
 
   <script src="script.js"></script>
