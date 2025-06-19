@@ -19,8 +19,6 @@ function CargarUnidades() {
     { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
-  let opciones = [];
-
   if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) {
     opciones = unidadesLiquidos;
   } else if (producto === 'Huevo') {
@@ -51,7 +49,7 @@ function obtenerClaveSemana(fecha) {
 function fechasSemana(year, week) {
   const simple = new Date(year, 0, 1 + (week - 1) * 7);
   const dow = simple.getDay();
-  const ISOweekStart = new Date(simple);
+  const ISOweekStart = simple;
   if (dow <= 4) {
     ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
   } else {
@@ -275,4 +273,83 @@ document.getElementById('btn-reportar').addEventListener('click', () => {
   const precioInput = document.getElementById('precio');
   const precio = parseFloat(precioInput.value);
   const equivalencia = document.getElementById('equivalencia').value;
-  const ciudad = document.getElementById('ci
+  const ciudad = document.getElementById('ciudad').value;
+
+  if (
+    producto !== 'Selecciona El Producto' &&
+    !isNaN(precio) && precio > 0 &&
+    equivalencia !== 'Selecciona la Unidad' &&
+    ciudad !== 'Selecciona Ciudad'
+  ) {
+    const nuevoRegistro = {
+      producto,
+      precio,
+      equivalencia,
+      ciudad,
+      fecha: new Date().toISOString()
+    };
+    guardarRegistroSemanal(nuevoRegistro);
+    limpiarFormulario();
+    mostrarToast('Precio guardado con éxito.', '#27ae60');
+    mostrarDatosSemana();
+  } else {
+    mostrarToast('Por favor, completa todos los campos correctamente.', '#e74c3c');
+  }
+});
+
+function limpiarFormulario() {
+  document.getElementById('Producto').selectedIndex = 0;
+  document.getElementById('precio').value = '';
+  document.getElementById('equivalencia').innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
+  document.getElementById('ciudad').selectedIndex = 0;
+}
+
+function mostrarToast(msg, color) {
+  toast.textContent = msg;
+  toast.style.background = color;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Inicializar
+document.getElementById('Producto').addEventListener('change', CargarUnidades);
+
+window.addEventListener('load', () => {
+  mostrarDatosSemana();
+  CargarUnidades();
+});
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
+  authDomain: "canasta-boliviana.firebaseapp.com",
+  projectId: "canasta-boliviana",
+  storageBucket: "canasta-boliviana.firebasestorage.app",
+  messagingSenderId: "995591486402",
+  appId: "1:995591486402:web:51517ae579805d2a43f45b"
+};
+
+const app = initializeApp(firebaseConfig);
+
+window.addEventListener('DOMContentLoaded', () => {
+  mostrarDatosSemana();
+  CargarUnidades();
+
+  document.getElementById('btn-reportar').addEventListener('click', () => {
+    // tu código registrar
+  });
+
+  document.getElementById('Producto').addEventListener('change', CargarUnidades);
+  
+  document.getElementById('btn-semana-anterior').addEventListener('click', () => {
+    semanaSeleccionadaIndex--;
+    mostrarDatosSemana();
+  });
+
+  document.getElementById('btn-semana-siguiente').addEventListener('click', () => {
+    if (semanaSeleccionadaIndex < 0) {
+      semanaSeleccionadaIndex++;
+      mostrarDatosSemana();
+    }
+  });
+});
