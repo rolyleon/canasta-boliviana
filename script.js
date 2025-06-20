@@ -1,22 +1,26 @@
-// Firebase config (si usas Firebase, coloca aquí la config real)
+// Importa Firestore para guardar datos en la nube
+import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 
+// Configura Firebase (reemplaza con tu configuración)
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
   authDomain: "canasta-boliviana.firebaseapp.com",
   projectId: "canasta-boliviana",
-  storageBucket: "canasta-boliviana.appspot.com",
+  storageBucket: "canasta-boliviana.firebasestorage.app",
   messagingSenderId: "995591486402",
   appId: "1:995591486402:web:51517ae579805d2a43f45b"
 };
 
+// Inicializa Firebase y Firestore
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// Función para cargar unidades según producto
-export function CargarUnidades() {
+// --- Función para cargar unidades según producto seleccionado
+function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
-  equivalenciaSelect.innerHTML = '';
+  equivalenciaSelect.innerHTML = ''; // limpiar opciones
 
   const unidadesGenerales = [
     { value: 'g', label: 'Gramos (g)' },
@@ -33,15 +37,23 @@ export function CargarUnidades() {
     { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
-  let opciones = unidadesGenerales;
-  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
-  else if (producto === 'Huevo') opciones = [{ value: 'unidad', label: 'Unidad' }];
+  let opciones = [];
+
+  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) {
+    opciones = unidadesLiquidos;
+  } else if (producto === 'Huevo') {
+    opciones = [{ value: 'unidad', label: 'Unidad' }];
+  } else {
+    opciones = unidadesGenerales;
+  }
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
     equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
+
+// --- Funciones para manejo de semanas (igual que antes) ---
 
 function obtenerClaveSemana(fecha) {
   const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
@@ -55,9 +67,12 @@ function obtenerClaveSemana(fecha) {
 function fechasSemana(year, week) {
   const simple = new Date(year, 0, 1 + (week - 1) * 7);
   const dow = simple.getDay();
-  const ISOweekStart = simple;
-  if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-  else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+  const ISOweekStart = new Date(simple);
+  if (dow <= 4) {
+    ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+  } else {
+    ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+  }
   const ISOweekEnd = new Date(ISOweekStart);
   ISOweekEnd.setDate(ISOweekStart.getDate() + 6);
   return { inicio: ISOweekStart, fin: ISOweekEnd };
@@ -67,171 +82,202 @@ function formatearFecha(fecha) {
   return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function guardarRegistroSemanal(registro) {
+// --- FUNCIONES DE GUARDADO Y LECTURA FIRESTORE ---
+
+// Guardar registro en Firestore y localStorage
+async function guardarRegistro(registro) {
+  // Guardar en localStorage para carga rápida local (opcional)
   const historial = JSON.parse(localStorage.getItem('historialSemanal')) || {};
   const claveSemana = obtenerClaveSemana(new Date());
   if (!historial[claveSemana]) historial[claveSemana] = [];
   historial[claveSemana].push(registro);
   localStorage.setItem('historialSemanal', JSON.stringify(historial));
+
+  // Guardar en Firestore
+  try {
+    await addDoc(collection(db, "precios"), registro);
+  } catch (error) {
+    console.error("Error guardando en Firestore:", error);
+    mostrarToast('Error guardando en la base de datos.', '#e74c3c');
+  }
 }
 
-function obtenerDatosSemana(claveSemana) {
-  const historial = JSON.parse(localStorage.getItem('historialSemanal')) || {};
-  return historial[claveSemana] || [];
+// Obtener todos los datos de Firestore para la semana seleccionada
+async function obtenerDatosSemanaFirestore(claveSemana) {
+  try {
+    // Obtenemos año y número de semana
+    const [yearStr, semanaStr] = claveSemana.split('-');
+    const year = parseInt(yearStr);
+    const semana = parseInt(semanaStr);
+
+    // Calculamos fecha inicio y fin de la semana
+    const { inicio, fin } = fechasSemana(year, semana);
+
+    // Consultamos documentos entre fechas
+    // Firestore almacena fechas como Timestamp, pero nosotros guardamos ISOString, convertimos a Date
+    const q = query(collection(db, "precios"),
+      where("fechaISO", ">=", inicio.toISOString()),
+      where("fechaISO", "<=", fin.toISOString())
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    const datosSemana = [];
+    querySnapshot.forEach((doc) => {
+      datosSemana.push(doc.data());
+    });
+
+    return datosSemana;
+  } catch (error) {
+    console.error("Error obteniendo datos de Firestore:", error);
+    return [];
+  }
 }
 
-let semanaSeleccionadaIndex = 0;
+// Mostrar datos en tabla
+function mostrarDatos(datos) {
+  const tbody = document.getElementById('tabla-precios');
+  tbody.innerHTML = '';
+  if (!datos || datos.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
+    return;
+  }
 
-function calcularClaveSemanaConOffset(offset) {
-  const fecha = new Date();
-  fecha.setDate(fecha.getDate() + offset * 7);
-  return obtenerClaveSemana(fecha);
+  datos.forEach(d => {
+    const unidadTexto = unidadLabel(d.equivalencia);
+    const row = `<tr>
+      <td>${d.producto}</td>
+      <td>${Number(d.precio).toFixed(2)}</td>
+      <td>${unidadTexto}</td>
+      <td>${d.ciudad}</td>
+    </tr>`;
+    tbody.innerHTML += row;
+  });
 }
 
-function mostrarTituloSemana(claveSemana) {
-  const titulo = document.getElementById('titulo-semana');
-  const [yearStr, semanaStr] = claveSemana.split('-');
-  const year = Number(yearStr);
-  const semana = Number(semanaStr);
-  const { inicio, fin } = fechasSemana(year, semana);
-  const rango = `Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}`;
-
-  titulo.textContent = semanaSeleccionadaIndex === 0
-    ? `Semana Actual (${rango})`
-    : `Semana ${semana} del ${year} (${rango})`;
-
-  document.getElementById('btn-semana-siguiente').disabled = (semanaSeleccionadaIndex >= 0);
-}
-
+// Para mostrar el texto completo de unidad
 function unidadLabel(codigo) {
   const map = {
-    g: 'Gramos (g)', kg: 'Kilogramos (kg)', lb: 'Libras (lb)',
-    q: 'Quintal (q)', t: 'Tonelada (t)', ml: 'Mililitros (ml)',
-    l: 'Litros (l)', gal: 'Galón (gal)', bbl: 'Barril (bbl)', unidad: 'Unidad'
+    g: 'Gramos (g)',
+    kg: 'Kilogramos (kg)',
+    lb: 'Libras (lb)',
+    q: 'Quintal (q)',
+    t: 'Tonelada (t)',
+    ml: 'Mililitros (ml)',
+    l: 'Litros (l)',
+    gal: 'Galón (gal)',
+    bbl: 'Barril (bbl)',
+    unidad: 'Unidad'
   };
   return map[codigo] || codigo;
 }
 
-function mostrarDatos(datos) {
-  const tbody = document.getElementById('tabla-precios');
-  tbody.innerHTML = '';
-  if (!datos.length) {
-    tbody.innerHTML = `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
-    return;
-  }
-  datos.forEach(d => {
-    tbody.innerHTML += `<tr>
-      <td>${d.producto}</td>
-      <td>${d.precio.toFixed(2)}</td>
-      <td>${unidadLabel(d.equivalencia)}</td>
-      <td>${d.ciudad}</td>
-    </tr>`;
-  });
-}
-
+// Mostrar estadísticas
 function mostrarEstadisticas(datos) {
   const tbodyEstadisticas = document.getElementById('tabla-estadisticas');
-  tbodyEstadisticas.innerHTML = '';
-  const agrupados = {};
-
-  datos.forEach(d => {
-    if (!agrupados[d.producto]) agrupados[d.producto] = [];
-    agrupados[d.producto].push(d);
-  });
-
-  if (Object.keys(agrupados).length === 0) {
-    tbodyEstadisticas.innerHTML = '<tr><td>No hay productos.</td></tr>';
-    return;
-  }
-
-  Object.keys(agrupados).forEach(producto => {
-    tbodyEstadisticas.innerHTML += `<tr style="cursor:pointer;" onclick="mostrarDetalle('${producto}')">
-      <td style="color:blue;">${producto}</td></tr>`;
-  });
-}
-
-window.mostrarDetalle = function(producto) {
-  const claveSemana = semanaSeleccionadaIndex === 0
-    ? obtenerClaveSemana(new Date())
-    : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datos = obtenerDatosSemana(claveSemana);
-  const registrosProducto = datos.filter(d => d.producto === producto);
   const detalleDiv = document.getElementById('detalle-estadisticas');
   const detalleContenido = document.getElementById('detalle-contenido');
 
-  if (!registrosProducto.length) {
-    detalleContenido.innerHTML = "Sin registros.";
-    detalleDiv.classList.remove('hidden');
+  tbodyEstadisticas.innerHTML = '';
+  detalleDiv.classList.add('hidden');
+
+  if (!datos || datos.length === 0) {
+    tbodyEstadisticas.innerHTML = '<tr><td>No hay datos registrados.</td></tr>';
     return;
   }
 
-  let detalleHTML = `<strong>${producto}</strong><br><br>`;
   const agrupados = {};
-  registrosProducto.forEach(r => {
-    if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
-    agrupados[r.equivalencia].push(r);
+  datos.forEach(d => {
+    const clave = `${d.producto}`;
+    if (!agrupados[clave]) agrupados[clave] = [];
+    agrupados[clave].push(d);
   });
 
-  for (const unidad in agrupados) {
-    const registros = agrupados[unidad];
-    const precios = registros.map(r => r.precio);
-    const max = Math.max(...precios);
-    const min = Math.min(...precios);
+  let hayDatos = false;
+  Object.entries(agrupados).forEach(([producto, registros]) => {
+    if (registros.length < 2) return; // Muestra solo si hay al menos 2 registros para el producto
+    hayDatos = true;
+    tbodyEstadisticas.innerHTML += `
+      <tr style="cursor:pointer;" onclick="mostrarDetalle('${producto}')">
+        <td style="color:blue; text-decoration:underline;">${producto}</td>
+      </tr>
+    `;
+  });
 
-    const ciudadesMax = registros.filter(r => r.precio === max).map(r => r.ciudad).join(', ');
-    const ciudadesMin = registros.filter(r => r.precio === min).map(r => r.ciudad).join(', ');
-
-    detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>
-    Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
-    Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
+  if (!hayDatos) {
+    tbodyEstadisticas.innerHTML = '<tr><td>No hay productos con suficientes registros.</td></tr>';
   }
+}
 
-  const promedio = registrosProducto.reduce((sum, r) => sum + r.precio, 0) / registrosProducto.length;
-  detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
-  detalleContenido.innerHTML = detalleHTML;
-  detalleDiv.classList.remove('hidden');
-};
-
-function mostrarDatosSemana() {
-  const clave = semanaSeleccionadaIndex === 0
+// Mostrar detalle de un producto
+function mostrarDetalle(producto) {
+  const claveSemana = semanaSeleccionadaIndex === 0
     ? obtenerClaveSemana(new Date())
     : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datosSemana = obtenerDatosSemana(clave);
-  mostrarDatos(datosSemana);
-  mostrarEstadisticas(datosSemana);
-  mostrarTituloSemana(clave);
+
+  obtenerDatosSemanaFirestore(claveSemana).then(datos => {
+    const detalleDiv = document.getElementById('detalle-estadisticas');
+    const detalleContenido = document.getElementById('detalle-contenido');
+
+    const registrosProducto = datos.filter(d => d.producto === producto);
+
+    if (registrosProducto.length === 0) {
+      detalleContenido.innerHTML = "No hay registros para este producto en esta semana.";
+      detalleDiv.classList.remove('hidden');
+      return;
+    }
+
+    let detalleHTML = `<strong>Producto:</strong> ${producto}<br><br>`;
+
+    const agrupadosPorUnidad = {};
+    registrosProducto.forEach(r => {
+      if (!agrupadosPorUnidad[r.equivalencia]) agrupadosPorUnidad[r.equivalencia] = [];
+      agrupadosPorUnidad[r.equivalencia].push(r);
+    });
+
+    for (const [unidad, registros] of Object.entries(agrupadosPorUnidad)) {
+      detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>`;
+
+      const precios = registros.map(r => Number(r.precio));
+      const maxPrecio = Math.max(...precios);
+      const minPrecio = Math.min(...precios);
+
+      const ciudadesMax = [...new Set(
+        registros.filter(r => Number(r.precio) === maxPrecio).map(r => r.ciudad)
+      )].join(', ');
+
+      const ciudadesMin = [...new Set(
+        registros.filter(r => Number(r.precio) === minPrecio).map(r => r.ciudad)
+      )].join(', ');
+
+      detalleHTML += `- <strong>Máximo:</strong> ${maxPrecio.toFixed(2)} Bs en: ${ciudadesMax}<br>`;
+      detalleHTML += `- <strong>Mínimo:</strong> ${minPrecio.toFixed(2)} Bs en: ${ciudadesMin}<br><br>`;
+    }
+
+    const sumaPrecios = registrosProducto.reduce((acc, r) => acc + Number(r.precio), 0);
+    const promedio = sumaPrecios / registrosProducto.length;
+    detalleHTML += `<strong>Promedio General:</strong> ${promedio.toFixed(2)} Bs<br>`;
+
+    detalleContenido.innerHTML = detalleHTML;
+    detalleDiv.classList.remove('hidden');
+  });
 }
 
-function limpiarFormulario() {
-  document.getElementById('Producto').selectedIndex = 0;
-  document.getElementById('precio').value = '';
-  document.getElementById('equivalencia').innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
-  document.getElementById('ciudad').selectedIndex = 0;
-}
+// Toast para mostrar mensajes
+const toast = document.getElementById('toast');
+const sidebar = document.getElementById('sidebar');
+const menuToggle = document.getElementById('menu-toggle');
 
-function mostrarToast(msg, color) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.style.background = color;
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
-}
-
-document.getElementById('btn-reportar').addEventListener('click', () => {
-  const producto = document.getElementById('Producto').value;
-  const precio = parseFloat(document.getElementById('precio').value);
-  const equivalencia = document.getElementById('equivalencia').value;
-  const ciudad = document.getElementById('ciudad').value;
-
-  if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
-    guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString() });
-    limpiarFormulario();
-    mostrarToast('Precio guardado con éxito.', '#27ae60');
-    mostrarDatosSemana();
-  } else {
-    mostrarToast('Completa todos los campos.', '#e74c3c');
-  }
+menuToggle.addEventListener('click', () => {
+  sidebar.classList.toggle('hidden');
 });
+
+function mostrarSeccion(id) {
+  document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  sidebar.classList.add('hidden');
+  if (id === 'estadisticas') mostrarDatosSemana();
+}
 
 document.getElementById('btn-semana-anterior').addEventListener('click', () => {
   semanaSeleccionadaIndex--;
@@ -245,20 +291,96 @@ document.getElementById('btn-semana-siguiente').addEventListener('click', () => 
   }
 });
 
+let semanaSeleccionadaIndex = 0;
+
+async function mostrarDatosSemana() {
+  const clave = semanaSeleccionadaIndex === 0
+    ? obtenerClaveSemana(new Date())
+    : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
+
+  // Cambiado: ahora obtiene datos de Firestore
+  const datosSemana = await obtenerDatosSemanaFirestore(clave);
+
+  mostrarDatos(datosSemana);
+  mostrarEstadisticas(datosSemana);
+  mostrarTituloSemana(clave);
+}
+
+function calcularClaveSemanaConOffset(offset) {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + offset * 7);
+  return obtenerClaveSemana(fecha);
+}
+
+function mostrarTituloSemana(claveSemana) {
+  const titulo = document.getElementById('titulo-semana');
+  if (!titulo) return;
+
+  const [yearStr, semanaStr] = claveSemana.split('-');
+  const year = Number(yearStr);
+  const semana = Number(semanaStr);
+
+  const { inicio, fin } = fechasSemana(year, semana);
+  const rango = `Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}`;
+
+  titulo.textContent = semanaSeleccionadaIndex === 0
+    ? `Semana Actual (${rango})`
+    : `Semana ${semana} del ${year} (${rango})`;
+
+  const btnSig = document.getElementById('btn-semana-siguiente');
+  if (btnSig) btnSig.disabled = (semanaSeleccionadaIndex >= 0);
+}
+
+document.getElementById('btn-reportar').addEventListener('click', async () => {
+  const producto = document.getElementById('Producto').value;
+  const precioInput = document.getElementById('precio');
+  const precio = parseFloat(precioInput.value);
+  const equivalencia = document.getElementById('equivalencia').value;
+  const ciudad = document.getElementById('ciudad').value;
+
+  if (
+    producto !== 'Selecciona El Producto' &&
+    !isNaN(precio) && precio > 0 &&
+    equivalencia !== 'Selecciona la Unidad' &&
+    ciudad !== 'Selecciona Ciudad'
+  ) {
+    const nuevoRegistro = {
+      producto,
+      precio,
+      equivalencia,
+      ciudad,
+      fecha: new Date().toISOString(),
+      fechaISO: new Date().toISOString() // Para consultas por fecha en Firestore
+    };
+
+    await guardarRegistro(nuevoRegistro);
+
+    limpiarFormulario();
+    mostrarToast('Precio guardado con éxito.', '#27ae60');
+    mostrarDatosSemana();
+  } else {
+    mostrarToast('Por favor, completa todos los campos correctamente.', '#e74c3c');
+  }
+});
+
+function limpiarFormulario() {
+  document.getElementById('Producto').selectedIndex = 0;
+  document.getElementById('precio').value = '';
+  document.getElementById('equivalencia').innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
+  document.getElementById('ciudad').selectedIndex = 0;
+}
+
+function mostrarToast(msg, color) {
+  toast.textContent = msg;
+  toast.style.background = color;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Inicializar
 document.getElementById('Producto').addEventListener('change', CargarUnidades);
+
 window.addEventListener('load', () => {
   mostrarDatosSemana();
   CargarUnidades();
 });
-
-// Menú lateral
-document.getElementById('menu-toggle').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.toggle('hidden');
-});
-
-window.mostrarSeccion = function(id) {
-  document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-  document.getElementById('sidebar').classList.add('hidden');
-  if (id === 'estadisticas') mostrarDatosSemana();
-};
