@@ -39,7 +39,7 @@ export function CargarUnidades() {
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
-    equivalenciaSelect.innerHTML += <option value="${u.value}">${u.label}</option>;
+    equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
 
@@ -83,7 +83,7 @@ function mostrarDatos(datos) {
   const tbody = document.getElementById('tabla-precios');
   tbody.innerHTML = '';
   if (!datos.length) {
-    tbody.innerHTML = <tr><td colspan="4">No hay datos registrados.</td></tr>;
+    tbody.innerHTML = `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
     return;
   }
   datos.forEach(d => {
@@ -129,7 +129,7 @@ window.mostrarDetalle = function(producto) {
       return;
     }
 
-    let detalleHTML = <strong>${producto}</strong><br><br>;
+    let detalleHTML = `<strong>${producto}</strong><br><br>`;
     const agrupados = {};
     registrosProducto.forEach(r => {
       if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
@@ -151,7 +151,7 @@ window.mostrarDetalle = function(producto) {
     }
 
     const promedio = registrosProducto.reduce((sum, r) => sum + Number(r.precio), 0) / registrosProducto.length;
-    detalleHTML += <strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>;
+    detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
     detalleContenido.innerHTML = detalleHTML;
     detalleDiv.classList.remove('hidden');
   });
