@@ -1,4 +1,4 @@
-// ✅ CANASTA BOLIVIANA - script.js MEJORADO AL 100% import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+// ✅ CANASTA BOLIVIANA - script.js MEJORADO COMPLETO Y FUNCIONAL import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 const firebaseConfig = { apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8", authDomain: "canasta-boliviana.firebaseapp.com", projectId: "canasta-boliviana", storageBucket: "canasta-boliviana.appspot.com", messagingSenderId: "995591486402", appId: "1:995591486402:web:51517ae579805d2a43f45b" };
 
@@ -6,7 +6,7 @@ const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 
 // 🔐 Generar o recuperar ID único por usuario let usuarioId = localStorage.getItem('usuarioId'); if (!usuarioId) { usuarioId = crypto.randomUUID(); localStorage.setItem('usuarioId', usuarioId); }
 
-// 📅 Utilidades de fecha function obtenerLunes(date = new Date()) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); // lunes anterior d.setDate(diff); d.setHours(0, 0, 0, 0); return d; }
+// 📅 Utilidades de fecha function obtenerLunes(date = new Date()) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); d.setDate(diff); d.setHours(0, 0, 0, 0); return d; }
 
 function obtenerDomingo(lunes) { const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6); domingo.setHours(23, 59, 59, 999); return domingo; }
 
@@ -82,9 +82,9 @@ document.getElementById('btn-semana-anterior').addEventListener('click', () => {
 
 document.getElementById('btn-semana-siguiente').addEventListener('click', () => { semanaActual.setDate(semanaActual.getDate() + 7); mostrarDatosSemana(); });
 
-window.addEventListener('load', () => { mostrarDatosSemana(); CargarUnidades(); });
+window.addEventListener('load', () => { mostrarDatosSemana(); CargarUnidades();
 
-document.getElementById('menu-toggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('hidden'); });
+// ✅ Reparar botón de menú document.getElementById('menu-toggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('hidden'); }); });
 
 window.mostrarSeccion = function(id) { document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); document.getElementById('sidebar').classList.add('hidden'); if (id === 'estadisticas') mostrarDatosSemana(); };
 
