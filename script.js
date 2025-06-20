@@ -20,36 +20,42 @@ if (!userId) {
   localStorage.setItem('canastaUserId', userId);
 }
 
+// Función para cargar unidades según producto
 export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
   equivalenciaSelect.innerHTML = '';
 
-  let opciones = [];
-  if (["Aceite", "Leche en polvo", "Pescado"].includes(producto)) {
-    opciones = [
-      { value: 'ml', label: 'Mililitros (ml)' },
-      { value: 'l', label: 'Litros (l)' },
-      { value: 'gal', label: 'Galón (gal)' },
-      { value: 'bbl', label: 'Barril (bbl)' }
-    ];
-  } else if (producto === 'Huevo') {
-    opciones = [{ value: 'unidad', label: 'Unidad' }];
-  } else {
-    opciones = [
-      { value: 'g', label: 'Gramos (g)' },
-      { value: 'kg', label: 'Kilogramos (kg)' },
-      { value: 'lb', label: 'Libras (lb)' },
-      { value: 'q', label: 'Quintal (q)' },
-      { value: 't', label: 'Tonelada (t)' }
-    ];
-  }
+  const unidadesSolidos = [
+    { value: 'g', label: 'Gramos (g)' },
+    { value: 'kg', label: 'Kilogramos (kg)' },
+    { value: 'lb', label: 'Libras (lb)' },
+    { value: 'q', label: 'Quintal (q)' },
+    { value: 't', label: 'Tonelada (t)' }
+  ];
+
+  const unidadesLiquidos = [
+    { value: 'ml', label: 'Mililitros (ml)' },
+    { value: 'l', label: 'Litros (l)' },
+    { value: 'gal', label: 'Galón (gal)' },
+    { value: 'bbl', label: 'Barril (bbl)' }
+  ];
+
+  const unidadesUnidad = [
+    { value: 'unidad', label: 'Unidad' },
+    { value: 'docena', label: 'Docena' }
+  ];
+
+  let opciones = unidadesSolidos;
+  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
+  else if (['Huevo', 'Pan'].includes(producto)) opciones = unidadesUnidad;
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
     equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
+
 
 function unidadLabel(codigo) {
   const map = {
