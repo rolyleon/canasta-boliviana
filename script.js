@@ -1,9 +1,6 @@
-// app.js
-
+// Firebase config (si usas Firebase, coloca aquí la config real)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-// Tu configuración Firebase (pon la tuya real aquí)
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
   authDomain: "canasta-boliviana.firebaseapp.com",
@@ -13,11 +10,10 @@ const firebaseConfig = {
   appId: "1:995591486402:web:51517ae579805d2a43f45b"
 };
 
-// Inicializar app Firebase y Firestore
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-export function CargarUnidades() {
+// Quita export si llamas desde HTML directamente
+function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
   equivalenciaSelect.innerHTML = '';
@@ -47,6 +43,8 @@ export function CargarUnidades() {
   });
 }
 
+// FUNCIONES CON CORRECCIÓN DE TEMPLATE LITERALS
+
 function obtenerClaveSemana(fecha) {
   const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
   const dia = d.getUTCDay() || 7;
@@ -72,21 +70,11 @@ function formatearFecha(fecha) {
 }
 
 function guardarRegistroSemanal(registro) {
-  // Guardar localStorage
   const historial = JSON.parse(localStorage.getItem('historialSemanal')) || {};
   const claveSemana = obtenerClaveSemana(new Date());
   if (!historial[claveSemana]) historial[claveSemana] = [];
   historial[claveSemana].push(registro);
   localStorage.setItem('historialSemanal', JSON.stringify(historial));
-
-  // Guardar en Firestore
-  addDoc(collection(db, "precios"), registro)
-    .then(() => {
-      console.log("Registro guardado en Firestore");
-    })
-    .catch((error) => {
-      console.error("Error guardando en Firestore: ", error);
-    });
 }
 
 function obtenerDatosSemana(claveSemana) {
