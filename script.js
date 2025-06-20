@@ -1,7 +1,8 @@
+// script.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-// Tu configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
   authDomain: "canasta-boliviana.firebaseapp.com",
@@ -14,7 +15,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Función para cargar unidades según producto
 export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
@@ -45,7 +45,6 @@ export function CargarUnidades() {
   });
 }
 
-// Para mostrar las etiquetas de unidad (g, kg, etc)
 function unidadLabel(codigo) {
   const map = {
     g: 'Gramos (g)', kg: 'Kilogramos (kg)', lb: 'Libras (lb)',
@@ -55,7 +54,6 @@ function unidadLabel(codigo) {
   return map[codigo] || codigo;
 }
 
-// Mostrar tabla de precios (solo en Estadísticas)
 function mostrarDatos(datos) {
   const tbody = document.getElementById('tabla-precios');
   tbody.innerHTML = '';
@@ -73,7 +71,6 @@ function mostrarDatos(datos) {
   });
 }
 
-// Mostrar productos en tabla estadisticas (solo nombres)
 function mostrarEstadisticas(datos) {
   const tbodyEstadisticas = document.getElementById('tabla-estadisticas');
   tbodyEstadisticas.innerHTML = '';
@@ -95,10 +92,7 @@ function mostrarEstadisticas(datos) {
   });
 }
 
-// Mostrar detalle al hacer click en producto
 window.mostrarDetalle = function(producto) {
-  // Vamos a usar todos los datos actuales cargados en Firebase
-  // Para eso, recargamos datos y filtramos solo producto requerido
   cargarDatosFirebase(producto);
 };
 
@@ -107,7 +101,6 @@ async function cargarDatosFirebase(productoFiltro = null) {
   const snapshot = await getDocs(preciosCol);
   const datos = snapshot.docs.map(doc => doc.data());
 
-  // Si hay filtro de producto, mostramos solo ese detalle
   if (productoFiltro) {
     const registrosProducto = datos.filter(d => d.producto === productoFiltro);
     const detalleDiv = document.getElementById('detalle-estadisticas');
@@ -147,13 +140,11 @@ async function cargarDatosFirebase(productoFiltro = null) {
     return;
   }
 
-  // Si no hay filtro, mostramos datos generales (todos) en tabla
   mostrarDatos(datos);
   mostrarEstadisticas(datos);
   document.getElementById('detalle-estadisticas').classList.add('hidden');
 }
 
-// Registrar un nuevo precio en Firestore
 async function registrarPrecioFirebase(registro) {
   try {
     await addDoc(collection(db, "precios"), registro);
@@ -164,7 +155,6 @@ async function registrarPrecioFirebase(registro) {
   }
 }
 
-// Evento click botón registrar precio
 document.getElementById('btn-reportar').addEventListener('click', async () => {
   const producto = document.getElementById('Producto').value;
   const precio = parseFloat(document.getElementById('precio').value);
@@ -177,7 +167,6 @@ document.getElementById('btn-reportar').addEventListener('click', async () => {
     if (exito) {
       limpiarFormulario();
       mostrarToast('Precio guardado con éxito.', '#27ae60');
-      // No actualizamos tabla precios en registro, solo en estadisticas si quieres actualizar la vista
     } else {
       mostrarToast('Error guardando datos.', '#e74c3c');
     }
@@ -186,7 +175,6 @@ document.getElementById('btn-reportar').addEventListener('click', async () => {
   }
 });
 
-// Limpiar formulario
 function limpiarFormulario() {
   document.getElementById('Producto').selectedIndex = 0;
   document.getElementById('precio').value = '';
@@ -194,7 +182,6 @@ function limpiarFormulario() {
   document.getElementById('ciudad').selectedIndex = 0;
 }
 
-// Toast mensaje
 function mostrarToast(msg, color) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
@@ -203,7 +190,6 @@ function mostrarToast(msg, color) {
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
-// Menú lateral y mostrar sección
 document.getElementById('menu-toggle').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('hidden');
 });
@@ -216,14 +202,11 @@ window.mostrarSeccion = function(id) {
   if (id === 'estadisticas') {
     cargarDatosFirebase();
   } else {
-    // En registro no mostramos datos, solo formulario vacío
     document.getElementById('detalle-estadisticas').classList.add('hidden');
-    // Opcional: limpiar tabla precios en registro o dejar el mensaje
     document.getElementById('tabla-precios').innerHTML = <tr><td colspan="4">No hay datos registrados.</td></tr>;
   }
 };
 
-// Inicializar unidades y sección registro al cargar página
 window.addEventListener('load', () => {
   mostrarSeccion('registro');
   CargarUnidades();
