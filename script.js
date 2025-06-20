@@ -1,5 +1,5 @@
-// Firebase config (si usas Firebase, coloca aquí la config real)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
@@ -11,9 +11,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// Quita export si llamas desde HTML directamente
-function CargarUnidades() {
+export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
   equivalenciaSelect.innerHTML = '';
@@ -43,68 +43,6 @@ function CargarUnidades() {
   });
 }
 
-// FUNCIONES CON CORRECCIÓN DE TEMPLATE LITERALS
-
-function obtenerClaveSemana(fecha) {
-  const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
-  const dia = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dia);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const semanaNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return `${d.getUTCFullYear()}-${semanaNum.toString().padStart(2, '0')}`;
-}
-
-function fechasSemana(year, week) {
-  const simple = new Date(year, 0, 1 + (week - 1) * 7);
-  const dow = simple.getDay();
-  const ISOweekStart = simple;
-  if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-  else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
-  const ISOweekEnd = new Date(ISOweekStart);
-  ISOweekEnd.setDate(ISOweekStart.getDate() + 6);
-  return { inicio: ISOweekStart, fin: ISOweekEnd };
-}
-
-function formatearFecha(fecha) {
-  return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function guardarRegistroSemanal(registro) {
-  const historial = JSON.parse(localStorage.getItem('historialSemanal')) || {};
-  const claveSemana = obtenerClaveSemana(new Date());
-  if (!historial[claveSemana]) historial[claveSemana] = [];
-  historial[claveSemana].push(registro);
-  localStorage.setItem('historialSemanal', JSON.stringify(historial));
-}
-
-function obtenerDatosSemana(claveSemana) {
-  const historial = JSON.parse(localStorage.getItem('historialSemanal')) || {};
-  return historial[claveSemana] || [];
-}
-
-let semanaSeleccionadaIndex = 0;
-
-function calcularClaveSemanaConOffset(offset) {
-  const fecha = new Date();
-  fecha.setDate(fecha.getDate() + offset * 7);
-  return obtenerClaveSemana(fecha);
-}
-
-function mostrarTituloSemana(claveSemana) {
-  const titulo = document.getElementById('titulo-semana');
-  const [yearStr, semanaStr] = claveSemana.split('-');
-  const year = Number(yearStr);
-  const semana = Number(semanaStr);
-  const { inicio, fin } = fechasSemana(year, semana);
-  const rango = `Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}`;
-
-  titulo.textContent = semanaSeleccionadaIndex === 0
-    ? `Semana Actual (${rango})`
-    : `Semana ${semana} del ${year} (${rango})`;
-
-  document.getElementById('btn-semana-siguiente').disabled = (semanaSeleccionadaIndex >= 0);
-}
-
 function unidadLabel(codigo) {
   const map = {
     g: 'Gramos (g)', kg: 'Kilogramos (kg)', lb: 'Libras (lb)',
@@ -112,6 +50,33 @@ function unidadLabel(codigo) {
     l: 'Litros (l)', gal: 'Galón (gal)', bbl: 'Barril (bbl)', unidad: 'Unidad'
   };
   return map[codigo] || codigo;
+}
+
+// Guardar registro en Firestore
+async function guardarRegistroSemanal(registro) {
+  try {
+    await addDoc(collection(db, "precios"), registro);
+    mostrarToast('Precio guardado con éxito.', '#27ae60');
+    console.log("Registro guardado en Firestore");
+  } catch (e) {
+    mostrarToast('Error al guardar el precio.', '#e74c3c');
+    console.error("Error al guardar en Firestore: ", e);
+  }
+}
+
+// Obtener todos los registros de Firestore
+async function obtenerDatosSemana() {
+  try {
+    const querySnapshot = await getDocs(collection(db, "precios"));
+    const datos = [];
+    querySnapshot.forEach((doc) => {
+      datos.push(doc.data());
+    });
+    return datos;
+  } catch (e) {
+    console.error("Error al leer datos de Firestore: ", e);
+    return [];
+  }
 }
 
 function mostrarDatos(datos) {
@@ -124,7 +89,7 @@ function mostrarDatos(datos) {
   datos.forEach(d => {
     tbody.innerHTML += `<tr>
       <td>${d.producto}</td>
-      <td>${d.precio.toFixed(2)}</td>
+      <td>${Number(d.precio).toFixed(2)}</td>
       <td>${unidadLabel(d.equivalencia)}</td>
       <td>${d.ciudad}</td>
     </tr>`;
@@ -153,55 +118,53 @@ function mostrarEstadisticas(datos) {
 }
 
 window.mostrarDetalle = function(producto) {
-  const claveSemana = semanaSeleccionadaIndex === 0
-    ? obtenerClaveSemana(new Date())
-    : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datos = obtenerDatosSemana(claveSemana);
-  const registrosProducto = datos.filter(d => d.producto === producto);
-  const detalleDiv = document.getElementById('detalle-estadisticas');
-  const detalleContenido = document.getElementById('detalle-contenido');
+  obtenerDatosSemana().then((datos) => {
+    const registrosProducto = datos.filter(d => d.producto === producto);
+    const detalleDiv = document.getElementById('detalle-estadisticas');
+    const detalleContenido = document.getElementById('detalle-contenido');
 
-  if (!registrosProducto.length) {
-    detalleContenido.innerHTML = "Sin registros.";
+    if (!registrosProducto.length) {
+      detalleContenido.innerHTML = "Sin registros.";
+      detalleDiv.classList.remove('hidden');
+      return;
+    }
+
+    let detalleHTML = `<strong>${producto}</strong><br><br>`;
+    const agrupados = {};
+    registrosProducto.forEach(r => {
+      if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
+      agrupados[r.equivalencia].push(r);
+    });
+
+    for (const unidad in agrupados) {
+      const registros = agrupados[unidad];
+      const precios = registros.map(r => Number(r.precio));
+      const max = Math.max(...precios);
+      const min = Math.min(...precios);
+
+      const ciudadesMax = registros.filter(r => Number(r.precio) === max).map(r => r.ciudad).join(', ');
+      const ciudadesMin = registros.filter(r => Number(r.precio) === min).map(r => r.ciudad).join(', ');
+
+      detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>
+      Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
+      Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
+    }
+
+    const promedio = registrosProducto.reduce((sum, r) => sum + Number(r.precio), 0) / registrosProducto.length;
+    detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
+    detalleContenido.innerHTML = detalleHTML;
     detalleDiv.classList.remove('hidden');
-    return;
-  }
-
-  let detalleHTML = `<strong>${producto}</strong><br><br>`;
-  const agrupados = {};
-  registrosProducto.forEach(r => {
-    if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
-    agrupados[r.equivalencia].push(r);
   });
-
-  for (const unidad in agrupados) {
-    const registros = agrupados[unidad];
-    const precios = registros.map(r => r.precio);
-    const max = Math.max(...precios);
-    const min = Math.min(...precios);
-
-    const ciudadesMax = registros.filter(r => r.precio === max).map(r => r.ciudad).join(', ');
-    const ciudadesMin = registros.filter(r => r.precio === min).map(r => r.ciudad).join(', ');
-
-    detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>
-    Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
-    Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
-  }
-
-  const promedio = registrosProducto.reduce((sum, r) => sum + r.precio, 0) / registrosProducto.length;
-  detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
-  detalleContenido.innerHTML = detalleHTML;
-  detalleDiv.classList.remove('hidden');
 };
 
-function mostrarDatosSemana() {
-  const clave = semanaSeleccionadaIndex === 0
-    ? obtenerClaveSemana(new Date())
-    : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datosSemana = obtenerDatosSemana(clave);
+async function mostrarDatosSemana() {
+  const datosSemana = await obtenerDatosSemana();
   mostrarDatos(datosSemana);
   mostrarEstadisticas(datosSemana);
-  mostrarTituloSemana(clave);
+  // Puedes quitar manejo de semanas si solo cargas todo
+  document.getElementById('titulo-semana').textContent = "Datos en tiempo real desde Firestore";
+  document.getElementById('btn-semana-anterior').disabled = true;
+  document.getElementById('btn-semana-siguiente').disabled = true;
 }
 
 function limpiarFormulario() {
@@ -228,26 +191,14 @@ document.getElementById('btn-reportar').addEventListener('click', () => {
   if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
     guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString() });
     limpiarFormulario();
-    mostrarToast('Precio guardado con éxito.', '#27ae60');
     mostrarDatosSemana();
   } else {
     mostrarToast('Completa todos los campos.', '#e74c3c');
   }
 });
 
-document.getElementById('btn-semana-anterior').addEventListener('click', () => {
-  semanaSeleccionadaIndex--;
-  mostrarDatosSemana();
-});
-
-document.getElementById('btn-semana-siguiente').addEventListener('click', () => {
-  if (semanaSeleccionadaIndex < 0) {
-    semanaSeleccionadaIndex++;
-    mostrarDatosSemana();
-  }
-});
-
 document.getElementById('Producto').addEventListener('change', CargarUnidades);
+
 window.addEventListener('load', () => {
   mostrarDatosSemana();
   CargarUnidades();
