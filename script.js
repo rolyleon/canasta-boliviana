@@ -14,6 +14,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// --- GENERAR O CARGAR ID UNICO DE USUARIO (DISPOSITIVO) ---
+let userId = localStorage.getItem('canastaUserId');
+if (!userId) {
+  userId = crypto.randomUUID();
+  localStorage.setItem('canastaUserId', userId);
+}
+
 // ----------- Función para cargar unidades según producto -----------
 export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
@@ -70,15 +77,30 @@ function getRangoSemana(fecha) {
   return { lunes, domingo };
 }
 
-// ----------- Función para obtener datos Firebase filtrados por rango fechas -----------
-async function obtenerDatosPorRangoFechas(fechaInicio, fechaFin) {
+// ----------- Función para obtener datos Firebase filtrados por rango fechas y opcional userId -----------
+async function obtenerDatosPorRangoFechas(fechaInicio, fechaFin, userFilter = null) {
   const preciosRef = collection(db, 'precios');
-  const q = query(
-    preciosRef,
-    where('fecha', '>=', fechaInicio.toISOString()),
-    where('fecha', '<=', fechaFin.toISOString()),
-    orderBy('fecha', 'desc')
-  );
+  let q;
+
+  if (userFilter) {
+    // Filtrar por usuario y rango fechas
+    q = query(
+      preciosRef,
+      where('userId', '==', userFilter),
+      where('fecha', '>=', fechaInicio.toISOString()),
+      where('fecha', '<=', fechaFin.toISOString()),
+      orderBy('fecha', 'desc')
+    );
+  } else {
+    // Solo filtrar por rango fechas
+    q = query(
+      preciosRef,
+      where('fecha', '>=', fechaInicio.toISOString()),
+      where('fecha', '<=', fechaFin.toISOString()),
+      orderBy('fecha', 'desc')
+    );
+  }
+
   const snapshot = await getDocs(q);
   const resultados = [];
   snapshot.forEach(doc => resultados.push(doc.data()));
@@ -134,7 +156,9 @@ window.mostrarDetalle = function(producto) {
 };
 
 async function cargarDatosFirebase(productoFiltro = null) {
-  // Obtener todas las filas filtradas para la semana actual
+  // Cargar semana actual para mostrar en detalle
+  // Aquí en detalle mostramos datos filtrados por semana actual y producto
+  
   const datos = await obtenerDatosPorRangoFechas(rangoSemana.lunes, rangoSemana.domingo);
 
   if (productoFiltro) {
@@ -200,18 +224,27 @@ let rangoSemana = getRangoSemana(new Date());
 
 // ----------- Función para cargar datos segun semana seleccionada -----------
 
-async function cargarSemana(fecha) {
+async function cargarSemana(fecha, paraEstadisticas = true) {
   rangoSemana = getRangoSemana(fecha);
   const tituloSemana = document.getElementById('titulo-semana');
   tituloSemana.textContent = `Semana del ${rangoSemana.lunes.toLocaleDateString()} al ${rangoSemana.domingo.toLocaleDateString()}`;
 
-  const datos = await obtenerDatosPorRangoFechas(rangoSemana.lunes, rangoSemana.domingo);
-  mostrarDatos(datos);
-  mostrarEstadisticas(datos);
+  let datos;
 
-  // Deshabilitar botón siguiente si ya estamos en la semana actual
-  const semanaActual = getRangoSemana(new Date());
-  document.getElementById('btn-semana-siguiente').disabled = rangoSemana.lunes >= semanaActual.lunes;
+  if (paraEstadisticas) {
+    // En estadisticas mostramos TODOS los usuarios, filtrado por semana
+    datos = await obtenerDatosPorRangoFechas(rangoSemana.lunes, rangoSemana.domingo);
+    mostrarDatos(datos);
+    mostrarEstadisticas(datos);
+    // Control botón siguiente para no pasar semana actual
+    const semanaActual = getRangoSemana(new Date());
+    document.getElementById('btn-semana-siguiente').disabled = rangoSemana.lunes >= semanaActual.lunes;
+    document.getElementById('detalle-estadisticas').classList.add('hidden');
+  } else {
+    // En registros mostramos SOLO del usuario actual
+    datos = await obtenerDatosPorRangoFechas(rangoSemana.lunes, rangoSemana.domingo, userId);
+    mostrarDatos(datos);
+  }
 }
 
 // ----------- Eventos botones para cambiar semana -----------
@@ -219,13 +252,13 @@ async function cargarSemana(fecha) {
 document.getElementById('btn-semana-anterior').addEventListener('click', () => {
   const nuevaFecha = new Date(rangoSemana.lunes);
   nuevaFecha.setDate(nuevaFecha.getDate() - 7);
-  cargarSemana(nuevaFecha);
+  cargarSemana(nuevaFecha, true);
 });
 
 document.getElementById('btn-semana-siguiente').addEventListener('click', () => {
   const nuevaFecha = new Date(rangoSemana.lunes);
   nuevaFecha.setDate(nuevaFecha.getDate() + 7);
-  cargarSemana(nuevaFecha);
+  cargarSemana(nuevaFecha, true);
 });
 
 // ----------- Evento botón registrar -----------
@@ -247,13 +280,16 @@ document.getElementById('btn-reportar').addEventListener('click', async () => {
       precio,
       equivalencia,
       ciudad,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      userId  // Guardamos id para filtrar después
     };
 
     const exito = await registrarPrecioFirebase(registro);
     if (exito) {
       limpiarFormulario();
       mostrarToast('Precio guardado con éxito.', '#27ae60');
+      // Actualizar lista de registros SOLO para este usuario
+      cargarSemana(new Date(), false);
     } else {
       mostrarToast('Error guardando datos.', '#e74c3c');
     }
@@ -293,11 +329,11 @@ window.mostrarSeccion = function(id) {
   document.getElementById('sidebar').classList.add('hidden');
 
   if (id === 'estadisticas') {
-    cargarSemana(new Date());
+    cargarSemana(new Date(), true);
   } else {
-    // En registro no mostramos datos
+    // En registro mostramos solo registros propios
+    cargarSemana(new Date(), false);
     document.getElementById('detalle-estadisticas').classList.add('hidden');
-    document.getElementById('tabla-precios').innerHTML = `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
   }
 };
 
