@@ -1,7 +1,9 @@
-// Firebase config (ya tienes importado firebase-app y aquí añadimos firestore)
+// app.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
+// Tu configuración Firebase (pon la tuya real aquí)
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
   authDomain: "canasta-boliviana.firebaseapp.com",
@@ -11,10 +13,10 @@ const firebaseConfig = {
   appId: "1:995591486402:web:51517ae579805d2a43f45b"
 };
 
+// Inicializar app Firebase y Firestore
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Función para cargar unidades según producto
 export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
@@ -70,21 +72,21 @@ function formatearFecha(fecha) {
 }
 
 function guardarRegistroSemanal(registro) {
+  // Guardar localStorage
   const historial = JSON.parse(localStorage.getItem('historialSemanal')) || {};
   const claveSemana = obtenerClaveSemana(new Date());
   if (!historial[claveSemana]) historial[claveSemana] = [];
   historial[claveSemana].push(registro);
   localStorage.setItem('historialSemanal', JSON.stringify(historial));
-}
 
-// NUEVA función para guardar en Firestore
-async function guardarRegistroFirebase(registro) {
-  try {
-    await addDoc(collection(db, "precios"), registro);
-    console.log("Registro guardado en Firestore correctamente");
-  } catch (error) {
-    console.error("Error guardando en Firestore:", error);
-  }
+  // Guardar en Firestore
+  addDoc(collection(db, "precios"), registro)
+    .then(() => {
+      console.log("Registro guardado en Firestore");
+    })
+    .catch((error) => {
+      console.error("Error guardando en Firestore: ", error);
+    });
 }
 
 function obtenerDatosSemana(claveSemana) {
@@ -236,11 +238,7 @@ document.getElementById('btn-reportar').addEventListener('click', () => {
   const ciudad = document.getElementById('ciudad').value;
 
   if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
-    const nuevoRegistro = { producto, precio, equivalencia, ciudad, fecha: new Date().toISOString() };
-
-    guardarRegistroSemanal(nuevoRegistro);
-    guardarRegistroFirebase(nuevoRegistro); // GUARDA EN FIRESTORE
-
+    guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString() });
     limpiarFormulario();
     mostrarToast('Precio guardado con éxito.', '#27ae60');
     mostrarDatosSemana();
