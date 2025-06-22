@@ -46,7 +46,7 @@ export function CargarUnidades() {
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
-    equivalenciaSelect.innerHTML += <option value="${u.value}">${u.label}</option>;
+    equivalenciaSelect.innerHTML += '<option value="${u.value}">${u.label}</option>';
   });
 }
 
@@ -57,7 +57,7 @@ function obtenerClaveSemana(fecha) {
   d.setUTCDate(d.getUTCDate() + 4 - dia);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const semanaNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return ${d.getUTCFullYear()}-${semanaNum.toString().padStart(2, '0')};
+  return `${d.getUTCFullYear()}-${semanaNum.toString().padStart(2, '0')}`;
 }
 
 function fechasSemana(year, week) {
@@ -115,11 +115,11 @@ function mostrarTituloSemana(claveSemana) {
   const year = Number(yearStr);
   const semana = Number(semanaStr);
   const { inicio, fin } = fechasSemana(year, semana);
-  const rango = Del ${formatearFecha(inicio)} al ${formatearFecha(fin)};
+  const rango = 'Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}';
 
   titulo.textContent = semanaSeleccionadaIndex === 0
-    ? Semana Actual (${rango})
-    : Semana ${semana} del ${year} (${rango});
+    ? 'Semana Actual (${rango})'
+    : 'Semana ${semana} del ${year} (${rango})';
 
   document.getElementById('btn-semana-siguiente').disabled = (semanaSeleccionadaIndex >= 0);
 }
@@ -186,7 +186,7 @@ window.mostrarDetalle = function(producto) {
     return;
   }
 
-  let detalleHTML = <strong>${producto}</strong><br><br>;
+  let detalleHTML = '<strong>${producto}</strong><br><br>';
   const agrupados = {};
   registrosProducto.forEach(r => {
     if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
@@ -203,6 +203,7 @@ window.mostrarDetalle = function(producto) {
     const ciudadesMin = registros.filter(r => r.precio === min).map(r => r.ciudad).join(', ');
 
     detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>
+    detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
     Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
     Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
   }
