@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Función para cargar unidades según producto
-export function CargarUnidades() {
+window.CargarUnidades = function() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
   equivalenciaSelect.innerHTML = '';
