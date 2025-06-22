@@ -246,9 +246,7 @@ document.getElementById('btn-reportar').addEventListener('click', () => {
 
   if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
     const claveSemana = obtenerClaveSemana(new Date());
-guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString(), claveSemana });
-
-    guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString() });
+    guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString(), claveSemana });
     limpiarFormulario();
     mostrarToast('Precio guardado con éxito.', '#27ae60');
     mostrarDatosSemana();
