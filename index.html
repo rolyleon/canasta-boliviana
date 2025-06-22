@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +12,9 @@
   <header class="topbar">
     <div class="menu-toggle" id="menu-toggle">☰</div>
     <p class="topbar-title">Canasta Boliviana</p>
-  </header>  <aside class="sidebar hidden" id="sidebar">
+  </header>
+
+  <aside class="sidebar hidden" id="sidebar">
     <h2>Menú</h2>
     <nav>
       <ul>
@@ -19,10 +22,12 @@
         <li onclick="mostrarSeccion('estadisticas')">Estadísticas</li>
       </ul>
     </nav>
-  </aside>  <main class="content">
+  </aside>
+
+  <main class="content">
     <section id="registro" class="card">
       <h3>Registrar Precio</h3>
-      <select name="Producto" id="Producto">
+      <select name="Producto" id="Producto" onchange="CargarUnidades()">
         <option disabled selected>Selecciona El Producto</option>
         <option value="Arroz">Arroz</option>
         <option value="Fideo">Fideo</option>
@@ -39,6 +44,7 @@
         <option value="Aceite">Aceite</option>
         <option value="Lenteja">Lenteja</option>
         <option value="Ajo">Ajo</option>
+        <option value="Pan">Pan</option>
       </select>
       <div class="form-group">
         <label>Precio (Bs)</label>
@@ -66,42 +72,46 @@
         </select>
       </div>
       <button id="btn-reportar">Registrar Precio</button>
-      <div id="toast" class="toast hidden"></div><h3 style="margin-top:30px;">Listado de Precios</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Producto</th>
-        <th>Precio (Bs)</th>
-        <th>Unidad</th>
-        <th>Ciudad</th>
-      </tr>
-    </thead>
-    <tbody id="tabla-precios">
-      <tr><td colspan="4">No hay datos registrados.</td></tr>
-    </tbody>
-  </table>
-</section>
+      <div id="toast" class="toast hidden"></div>
 
-<section id="estadisticas" class="card hidden">
-  <h3>Estadísticas Generales</h3>
-  <table>
-    <thead><tr><th>Producto</th></tr></thead>
-    <tbody id="tabla-estadisticas">
-      <tr><td>No hay datos registrados.</td></tr>
-    </tbody>
-  </table>
+      <h3 style="margin-top:30px;">Listado de Precios</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Precio (Bs)</th>
+            <th>Unidad</th>
+            <th>Ciudad</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-precios">
+          <tr><td colspan="4">No hay datos registrados.</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-  <div id="detalle-estadisticas" class="card hidden" style="margin-top: 20px;">
-    <h4>Detalle del Producto</h4>
-    <p id="detalle-contenido">Selecciona un producto para ver sus detalles.</p>
-  </div>
+    <section id="estadisticas" class="card hidden">
+      <h3>Estadísticas Generales</h3>
+      <table>
+        <thead><tr><th>Producto</th></tr></thead>
+        <tbody id="tabla-estadisticas">
+          <tr><td>No hay datos registrados.</td></tr>
+        </tbody>
+      </table>
 
-  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-    <button id="btn-semana-anterior">← Semana anterior</button>
-    <span id="titulo-semana" style="font-weight:bold;"></span>
-    <button id="btn-semana-siguiente">Semana siguiente →</button>
-  </div>
-</section>
+      <div id="detalle-estadisticas" class="card hidden" style="margin-top: 20px;">
+        <h4>Detalle del Producto</h4>
+        <p id="detalle-contenido">Selecciona un producto para ver sus detalles.</p>
+      </div>
 
-  </main>  <script type="module" src="script.js"></script></body>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <button id="btn-semana-anterior">← Semana anterior</button>
+        <span id="titulo-semana" style="font-weight:bold;"></span>
+        <button id="btn-semana-siguiente" disabled>Semana siguiente →</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="script.js"></script>
+</body>
 </html>
