@@ -1,5 +1,5 @@
-// Firebase config (si usas Firebase, coloca aquí la config real)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
@@ -11,45 +11,32 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// Función para cargar unidades según producto
-window.CargarUnidades = function() {
+export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
-  equivalenciaSelect.innerHTML = '';
+  equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
 
   const unidadesGenerales = [
-    { value: 'g', label: 'Gramos (g)' },
-    { value: 'kg', label: 'Kilogramos (kg)' },
-    { value: 'lb', label: 'Libras (lb)' },
-    { value: 'a', label: 'Arroba (a)'},
-    { value: 'q', label: 'Quintal (q)' },
-    { value: 't', label: 'Tonelada (t)' }
+    { value: 'g', label: 'Gramos (g)' }, { value: 'kg', label: 'Kilogramos (kg)' },
+    { value: 'lb', label: 'Libras (lb)' }, { value: 'a', label: 'Arroba (a)' },
+    { value: 'q', label: 'Quintal (q)' }, { value: 't', label: 'Tonelada (t)' }
   ];
-
   const unidadesLiquidos = [
-    { value: 'ml', label: 'Mililitros (ml)' },
-    { value: 'l', label: 'Litros (l)' },
-    { value: 'gal', label: 'Galón (gal)' },
-    { value: 'bbl', label: 'Barril (bbl)' }
+    { value: 'ml', label: 'Mililitros (ml)' }, { value: 'l', label: 'Litros (l)' },
+    { value: 'gal', label: 'Galón (gal)' }, { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
   let opciones = unidadesGenerales;
+  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
+  if (['Huevo', 'Pan'].includes(producto)) opciones = [{ value: 'unidad', label: 'Unidad' }];
 
-  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) {
-    opciones = unidadesLiquidos;
-  } else if (['Huevo', 'Pan'].includes(producto)) {
-    opciones = [{ value: 'unidad', label: 'Unidad' }];
-  } else {
-    opciones = unidadesGenerales;
-  }
-
-  equivalenciaSelect.innerHTML = `<option disabled selected>Selecciona la Unidad</option>`;
   opciones.forEach(u => {
     equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
-
+window.CargarUnidades = CargarUnidades;
 
 function obtenerClaveSemana(fecha) {
   const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
@@ -75,31 +62,23 @@ function formatearFecha(fecha) {
   return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-const db = getFirestore(app);
-
 async function guardarRegistroSemanal(registro) {
   try {
     await addDoc(collection(db, "registros"), registro);
     console.log("Guardado en Firestore:", registro);
   } catch (e) {
     console.error("Error al guardar en Firestore: ", e);
+    throw e;
   }
 }
-
-import { getDocs, query, collection, where } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 async function obtenerDatosSemana(claveSemana) {
   const datos = [];
   const q = query(collection(db, "registros"), where("claveSemana", "==", claveSemana));
   const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    datos.push(doc.data());
-  });
+  querySnapshot.forEach((doc) => datos.push(doc.data()));
   return datos;
 }
-
-
 
 let semanaSeleccionadaIndex = 0;
 
@@ -112,34 +91,21 @@ function calcularClaveSemanaConOffset(offset) {
 function mostrarTituloSemana(claveSemana) {
   const titulo = document.getElementById('titulo-semana');
   const [yearStr, semanaStr] = claveSemana.split('-');
-  const year = Number(yearStr);
-  const semana = Number(semanaStr);
-  const { inicio, fin } = fechasSemana(year, semana);
-  const rango = `Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}`;
-
+  const { inicio, fin } = fechasSemana(+yearStr, +semanaStr);
   titulo.textContent = semanaSeleccionadaIndex === 0
-    ? `Semana Actual (${rango})`
-    : `Semana ${semana} del ${year} (${rango})`;
-
+    ? `Semana Actual (${formatearFecha(inicio)} al ${formatearFecha(fin)})`
+    : `Semana ${semanaStr} del ${yearStr} (${formatearFecha(inicio)} al ${formatearFecha(fin)})`;
   document.getElementById('btn-semana-siguiente').disabled = (semanaSeleccionadaIndex >= 0);
 }
 
 function unidadLabel(codigo) {
-  const map = {
-    g: 'Gramos (g)', kg: 'Kilogramos (kg)', lb: 'Libras (lb)',a:'Arroba (a)',
-    q: 'Quintal (q)', t: 'Tonelada (t)', ml: 'Mililitros (ml)',
-    l: 'Litros (l)', gal: 'Galón (gal)', bbl: 'Barril (bbl)', unidad: 'Unidad'
-  };
+  const map = { g:'Gramos (g)',kg:'Kilogramos (kg)',lb:'Libras (lb)',a:'Arroba (a)',q:'Quintal (q)',t:'Tonelada (t)',ml:'Mililitros (ml)',l:'Litros (l)',gal:'Galón (gal)',bbl:'Barril (bbl)',unidad:'Unidad' };
   return map[codigo] || codigo;
 }
 
 function mostrarDatos(datos) {
   const tbody = document.getElementById('tabla-precios');
-  tbody.innerHTML = '';
-  if (!datos.length) {
-    tbody.innerHTML = `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
-    return;
-  }
+  tbody.innerHTML = datos.length ? '' : `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
   datos.forEach(d => {
     tbody.innerHTML += `<tr>
       <td>${d.producto}</td>
@@ -152,34 +118,22 @@ function mostrarDatos(datos) {
 
 function mostrarEstadisticas(datos) {
   const tbodyEstadisticas = document.getElementById('tabla-estadisticas');
-  tbodyEstadisticas.innerHTML = '';
-  const agrupados = {};
-
-  datos.forEach(d => {
-    if (!agrupados[d.producto]) agrupados[d.producto] = [];
-    agrupados[d.producto].push(d);
-  });
-
-  if (Object.keys(agrupados).length === 0) {
-    tbodyEstadisticas.innerHTML = '<tr><td>No hay productos.</td></tr>';
-    return;
-  }
-
-  Object.keys(agrupados).forEach(producto => {
-    tbodyEstadisticas.innerHTML += `<tr style="cursor:pointer;" onclick="mostrarDetalle('${producto}')">
-      <td style="color:blue;">${producto}</td></tr>`;
-  });
+  const agrupados = datos.reduce((acc, d) => {
+    acc[d.producto] = acc[d.producto] || [];
+    acc[d.producto].push(d);
+    return acc;
+  }, {});
+  tbodyEstadisticas.innerHTML = Object.keys(agrupados).length
+    ? Object.keys(agrupados).map(p => `<tr onclick="mostrarDetalle('${p}')" style="cursor:pointer;"><td style="color:blue;">${p}</td></tr>`).join('')
+    : '<tr><td>No hay productos.</td></tr>';
 }
 
 window.mostrarDetalle = async function(producto) {
-  const claveSemana = semanaSeleccionadaIndex === 0
-    ? obtenerClaveSemana(new Date())
-    : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datos = await obtenerDatosSemana(claveSemana); // <-- await aquí
+  const claveSemana = semanaSeleccionadaIndex === 0 ? obtenerClaveSemana(new Date()) : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
+  const datos = await obtenerDatosSemana(claveSemana);
   const registrosProducto = datos.filter(d => d.producto === producto);
   const detalleDiv = document.getElementById('detalle-estadisticas');
   const detalleContenido = document.getElementById('detalle-contenido');
-
   if (!registrosProducto.length) {
     detalleContenido.innerHTML = "Sin registros.";
     detalleDiv.classList.remove('hidden');
@@ -187,26 +141,22 @@ window.mostrarDetalle = async function(producto) {
   }
 
   let detalleHTML = `<strong>${producto}</strong><br><br>`;
-  const agrupados = {};
-  registrosProducto.forEach(r => {
-    if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
-    agrupados[r.equivalencia].push(r);
-  });
-
+  const agrupados = registrosProducto.reduce((acc, r) => {
+    acc[r.equivalencia] = acc[r.equivalencia] || [];
+    acc[r.equivalencia].push(r);
+    return acc;
+  }, {});
   for (const unidad in agrupados) {
     const registros = agrupados[unidad];
     const precios = registros.map(r => r.precio);
     const max = Math.max(...precios);
     const min = Math.min(...precios);
-
     const ciudadesMax = registros.filter(r => r.precio === max).map(r => r.ciudad).join(', ');
     const ciudadesMin = registros.filter(r => r.precio === min).map(r => r.ciudad).join(', ');
-
     detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>
-    Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
-    Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
+      Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
+      Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
   }
-
   const promedio = registrosProducto.reduce((sum, r) => sum + r.precio, 0) / registrosProducto.length;
   detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
   detalleContenido.innerHTML = detalleHTML;
@@ -214,16 +164,12 @@ window.mostrarDetalle = async function(producto) {
 };
 
 async function mostrarDatosSemana() {
-  const clave = semanaSeleccionadaIndex === 0
-    ? obtenerClaveSemana(new Date())
-    : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datosSemana = await obtenerDatosSemana(clave); // <-- await aquí
+  const clave = semanaSeleccionadaIndex === 0 ? obtenerClaveSemana(new Date()) : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
+  const datosSemana = await obtenerDatosSemana(clave);
   mostrarDatos(datosSemana);
   mostrarEstadisticas(datosSemana);
   mostrarTituloSemana(clave);
 }
-
-
 
 function limpiarFormulario() {
   document.getElementById('Producto').selectedIndex = 0;
@@ -240,18 +186,21 @@ function mostrarToast(msg, color) {
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
-document.getElementById('btn-reportar').addEventListener('click', () => {
+document.getElementById('btn-reportar').addEventListener('click', async () => {
   const producto = document.getElementById('Producto').value;
   const precio = parseFloat(document.getElementById('precio').value);
   const equivalencia = document.getElementById('equivalencia').value;
   const ciudad = document.getElementById('ciudad').value;
-
-  if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
+  if (producto && !isNaN(precio) && precio > 0 && equivalencia && ciudad) {
     const claveSemana = obtenerClaveSemana(new Date());
-    guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString(), claveSemana });
-    limpiarFormulario();
-    mostrarToast('Precio guardado con éxito.', '#27ae60');
-    mostrarDatosSemana();
+    try {
+      await guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString(), claveSemana });
+      limpiarFormulario();
+      mostrarToast('Precio guardado con éxito.', '#27ae60');
+      mostrarDatosSemana();
+    } catch {
+      mostrarToast('Error guardando datos.', '#e74c3c');
+    }
   } else {
     mostrarToast('Completa todos los campos.', '#e74c3c');
   }
@@ -261,7 +210,6 @@ document.getElementById('btn-semana-anterior').addEventListener('click', () => {
   semanaSeleccionadaIndex--;
   mostrarDatosSemana();
 });
-
 document.getElementById('btn-semana-siguiente').addEventListener('click', () => {
   if (semanaSeleccionadaIndex < 0) {
     semanaSeleccionadaIndex++;
@@ -269,16 +217,10 @@ document.getElementById('btn-semana-siguiente').addEventListener('click', () => 
   }
 });
 
-document.getElementById('Producto').addEventListener('change', CargarUnidades);
-window.addEventListener('load', () => {
-  mostrarDatosSemana();
-  CargarUnidades();
-});
-
-// Menú lateral
 document.getElementById('menu-toggle').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('hidden');
 });
+document.getElementById('Producto').addEventListener('change', CargarUnidades);
 
 window.mostrarSeccion = function(id) {
   document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden'));
