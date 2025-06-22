@@ -171,11 +171,11 @@ function mostrarEstadisticas(datos) {
   });
 }
 
-window.mostrarDetalle = function(producto) {
+window.mostrarDetalle = async function(producto) {
   const claveSemana = semanaSeleccionadaIndex === 0
     ? obtenerClaveSemana(new Date())
     : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datos = obtenerDatosSemana(claveSemana);
+  const datos = await obtenerDatosSemana(claveSemana); // <-- await aquí
   const registrosProducto = datos.filter(d => d.producto === producto);
   const detalleDiv = document.getElementById('detalle-estadisticas');
   const detalleContenido = document.getElementById('detalle-contenido');
@@ -213,15 +213,17 @@ window.mostrarDetalle = function(producto) {
   detalleDiv.classList.remove('hidden');
 };
 
-function mostrarDatosSemana() {
+async function mostrarDatosSemana() {
   const clave = semanaSeleccionadaIndex === 0
     ? obtenerClaveSemana(new Date())
     : calcularClaveSemanaConOffset(semanaSeleccionadaIndex);
-  const datosSemana = obtenerDatosSemana(clave);
+  const datosSemana = await obtenerDatosSemana(clave); // <-- await aquí
   mostrarDatos(datosSemana);
   mostrarEstadisticas(datosSemana);
   mostrarTituloSemana(clave);
 }
+
+
 
 function limpiarFormulario() {
   document.getElementById('Producto').selectedIndex = 0;
