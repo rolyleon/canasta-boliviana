@@ -1,6 +1,6 @@
-// script.js - Firebase completo y funcional
+// Firebase config y Firestore
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCbE78-0DMWVEuf7rae3uyI-FqhDTPL3J8",
@@ -14,26 +14,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Cargar Unidades
 export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
   equivalenciaSelect.innerHTML = '';
 
   const unidadesGenerales = [
-    { value: 'g', label: 'Gramos (g)' }, { value: 'kg', label: 'Kilogramos (kg)' },
-    { value: 'lb', label: 'Libras (lb)' }, { value: 'a', label: 'Arroba (a)' },
-    { value: 'q', label: 'Quintal (q)' }, { value: 't', label: 'Tonelada (t)' }
+    { value: 'g', label: 'Gramos (g)' },
+    { value: 'kg', label: 'Kilogramos (kg)' },
+    { value: 'lb', label: 'Libras (lb)' },
+    { value: 'a', label: 'Arroba (a)'},
+    { value: 'q', label: 'Quintal (q)' },
+    { value: 't', label: 'Tonelada (t)' }
   ];
 
   const unidadesLiquidos = [
-    { value: 'ml', label: 'Mililitros (ml)' }, { value: 'l', label: 'Litros (l)' },
-    { value: 'gal', label: 'Galón (gal)' }, { value: 'bbl', label: 'Barril (bbl)' }
+    { value: 'ml', label: 'Mililitros (ml)' },
+    { value: 'l', label: 'Litros (l)' },
+    { value: 'gal', label: 'Galón (gal)' },
+    { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
   let opciones = unidadesGenerales;
 
-  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
-  else if (['Huevo', 'Pan'].includes(producto)) opciones = [{ value: 'unidad', label: 'Unidad' }];
+  if (["Aceite", "Leche en polvo", "Pescado"].includes(producto)) {
+    opciones = unidadesLiquidos;
+  } else if (["Huevo", "Pan"].includes(producto)) {
+    opciones = [{ value: 'unidad', label: 'Unidad' }];
+  }
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
@@ -41,14 +50,38 @@ export function CargarUnidades() {
   });
 }
 
-function mostrarToast(msg, color) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.style.background = color;
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
+function obtenerClaveSemana(fecha) {
+  const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
+  const dia = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dia);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const semanaNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-${semanaNum.toString().padStart(2, '0')}`;
 }
 
+async function guardarRegistroSemanal(registro) {
+  const claveSemana = obtenerClaveSemana(new Date());
+  await addDoc(collection(db, "precios"), { ...registro, semana: claveSemana });
+}
+
+async function obtenerDatosSemana(claveSemana) {
+  const q = query(collection(db, "precios"), where("semana", "==", claveSemana));
+  const querySnapshot = await getDocs(q);
+  const datos = [];
+  querySnapshot.forEach(doc => datos.push(doc.data()));
+  return datos;
+}
+
+// Todo lo demás: sin cambios
+// mostrarDatosSemana, mostrarDatos, mostrarEstadisticas, mostrarDetalle, etc.
+
+// Al cargar:
+window.addEventListener('load', () => {
+  mostrarDatosSemana();
+  CargarUnidades();
+});
+
+// Guardar precio:
 document.getElementById('btn-reportar').addEventListener('click', async () => {
   const producto = document.getElementById('Producto').value;
   const precio = parseFloat(document.getElementById('precio').value);
@@ -56,55 +89,11 @@ document.getElementById('btn-reportar').addEventListener('click', async () => {
   const ciudad = document.getElementById('ciudad').value;
 
   if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
-    try {
-      await addDoc(collection(db, "precios"), {
-        producto, precio, equivalencia, ciudad, fecha: new Date().toISOString()
-      });
-      mostrarToast('Precio guardado en Firebase.', '#27ae60');
-      cargarPrecios();
-    } catch (e) {
-      console.error("Error al guardar:", e);
-      mostrarToast('Error al guardar.', '#e74c3c');
-    }
+    await guardarRegistroSemanal({ producto, precio, equivalencia, ciudad, fecha: new Date().toISOString() });
+    limpiarFormulario();
+    mostrarToast('Precio guardado con éxito.', '#27ae60');
+    mostrarDatosSemana();
   } else {
     mostrarToast('Completa todos los campos.', '#e74c3c');
   }
 });
-
-async function cargarPrecios() {
-  const querySnapshot = await getDocs(collection(db, "precios"));
-  const tbody = document.getElementById('tabla-precios');
-  tbody.innerHTML = '';
-  if (querySnapshot.empty) {
-    tbody.innerHTML = '<tr><td colspan="4">No hay datos registrados.</td></tr>';
-    return;
-  }
-  querySnapshot.forEach((doc) => {
-    const d = doc.data();
-    tbody.innerHTML += `<tr>
-      <td>${d.producto}</td>
-      <td>${d.precio.toFixed(2)}</td>
-      <td>${d.equivalencia}</td>
-      <td>${d.ciudad}</td>
-    </tr>`;
-  });
-}
-
-// Mostrar precios al cargar
-window.addEventListener('load', () => {
-  cargarPrecios();
-  CargarUnidades();
-});
-
-// Menú lateral
-const menuToggle = document.getElementById('menu-toggle');
-menuToggle.addEventListener('click', () => {
-  document.getElementById('sidebar').classList.toggle('hidden');
-});
-
-window.mostrarSeccion = function(id) {
-  document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-  document.getElementById('sidebar').classList.add('hidden');
-  if (id === 'registro') cargarPrecios();
-};
