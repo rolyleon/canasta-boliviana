@@ -35,14 +35,21 @@ export function CargarUnidades() {
   ];
 
   let opciones = unidadesGenerales;
-  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
-  else if (producto === 'Huevo','Pan') opciones = [{ value: 'unidad', label: 'Unidad' }];
+
+  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) {
+    opciones = unidadesLiquidos;
+  } else if (['Huevo', 'Pan'].includes(producto)) {
+    opciones = [{ value: 'unidad', label: 'Unidad' }];
+  } else {
+    opciones = unidadesGenerales;
+  }
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
     equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
+
 
 function obtenerClaveSemana(fecha) {
   const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
