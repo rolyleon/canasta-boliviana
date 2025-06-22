@@ -35,15 +35,40 @@ export function CargarUnidades() {
     { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
-  let opciones = unidadesGenerales;
-  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
-  else if (producto === 'Huevo') opciones = [{ value: 'unidad', label: 'Unidad' }];
+  const unidadesUnidad = [
+    { value: 'unidad', label: 'Unidad' }
+  ];
+
+  const unidadesSólidosConArroba = [
+    { value: 'g', label: 'Gramos (g)' },
+    { value: 'kg', label: 'Kilogramos (kg)' },
+    { value: 'lb', label: 'Libras (lb)' },
+    { value: 'arroba', label: 'Arroba (arroba)' },
+    { value: 'q', label: 'Quintal (q)' },
+    { value: 't', label: 'Tonelada (t)' }
+  ];
+
+  let opciones = unidadesGenerales; // por defecto
+
+  // Líquidos: Aceite, Leche en polvo (según tu criterio también aquí), Pescado (si es líquido o fresco)
+  if (['Aceite'].includes(producto)) {
+    opciones = unidadesLiquidos;
+  }
+  // Por unidad
+  else if (['Huevo', 'Pan'].includes(producto)) {
+    opciones = unidadesUnidad;
+  }
+  // Sólidos con Arroba
+  else if (['Arroz', 'Harina', 'Lenteja'].includes(producto)) {
+    opciones = unidadesSólidosConArroba;
+  }
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
     equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
+
 
 // Para mostrar las etiquetas de unidad (g, kg, etc)
 function unidadLabel(codigo) {
