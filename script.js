@@ -44,9 +44,9 @@ export function CargarUnidades() {
     opciones = unidadesGenerales;
   }
 
-  equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
+  equivalenciaSelect.innerHTML = `<option disabled selected>Selecciona la Unidad</option>`;
   opciones.forEach(u => {
-    equivalenciaSelect.innerHTML += '<option value="${u.value}">${u.label}</option>';
+    equivalenciaSelect.innerHTML += `<option value="${u.value}">${u.label}</option>`;
   });
 }
 
@@ -115,11 +115,11 @@ function mostrarTituloSemana(claveSemana) {
   const year = Number(yearStr);
   const semana = Number(semanaStr);
   const { inicio, fin } = fechasSemana(year, semana);
-  const rango = 'Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}';
+  const rango = `Del ${formatearFecha(inicio)} al ${formatearFecha(fin)}`;
 
   titulo.textContent = semanaSeleccionadaIndex === 0
-    ? 'Semana Actual (${rango})'
-    : 'Semana ${semana} del ${year} (${rango})';
+    ? `Semana Actual (${rango})`
+    : `Semana ${semana} del ${year} (${rango})`;
 
   document.getElementById('btn-semana-siguiente').disabled = (semanaSeleccionadaIndex >= 0);
 }
@@ -137,7 +137,7 @@ function mostrarDatos(datos) {
   const tbody = document.getElementById('tabla-precios');
   tbody.innerHTML = '';
   if (!datos.length) {
-    tbody.innerHTML = <tr><td colspan="4">No hay datos registrados.</td></tr>;
+    tbody.innerHTML = `<tr><td colspan="4">No hay datos registrados.</td></tr>`;
     return;
   }
   datos.forEach(d => {
@@ -186,7 +186,7 @@ window.mostrarDetalle = function(producto) {
     return;
   }
 
-  let detalleHTML = '<strong>${producto}</strong><br><br>';
+  let detalleHTML = `<strong>${producto}</strong><br><br>`;
   const agrupados = {};
   registrosProducto.forEach(r => {
     if (!agrupados[r.equivalencia]) agrupados[r.equivalencia] = [];
@@ -203,13 +203,12 @@ window.mostrarDetalle = function(producto) {
     const ciudadesMin = registros.filter(r => r.precio === min).map(r => r.ciudad).join(', ');
 
     detalleHTML += `<strong>Unidad:</strong> ${unidadLabel(unidad)}<br>
-    detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
     Máximo: ${max.toFixed(2)} Bs (${ciudadesMax})<br>
     Mínimo: ${min.toFixed(2)} Bs (${ciudadesMin})<br><br>`;
   }
 
   const promedio = registrosProducto.reduce((sum, r) => sum + r.precio, 0) / registrosProducto.length;
-  detalleHTML += <strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>;
+  detalleHTML += `<strong>Promedio:</strong> ${promedio.toFixed(2)} Bs<br>`;
   detalleContenido.innerHTML = detalleHTML;
   detalleDiv.classList.remove('hidden');
 };
