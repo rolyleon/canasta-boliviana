@@ -27,8 +27,8 @@
   <main class="content">
     <section id="registro" class="card">
       <h3>Registrar Precio</h3>
-      <select name="Producto" id="Producto" onchange="CargarUnidades()">
-        <option disabled selected>Selecciona El Producto</option>
+      <select id="Producto">
+        <option value="" disabled selected>Selecciona El Producto</option>
         <option value="Arroz">Arroz</option>
         <option value="Fideo">Fideo</option>
         <option value="Harina">Harina</option>
@@ -53,13 +53,13 @@
       <div class="form-group">
         <label>Unidad</label>
         <select id="equivalencia">
-          <option disabled selected>Selecciona la Unidad</option>
+          <option value="" disabled selected>Selecciona la Unidad</option>
         </select>
       </div>
       <div class="form-group">
         <label>Ciudad</label>
         <select id="ciudad">
-          <option disabled selected>Selecciona Ciudad</option>
+          <option value="" disabled selected>Selecciona Ciudad</option>
           <option>La Paz</option>
           <option>Cochabamba</option>
           <option>Santa Cruz</option>
