@@ -1,4 +1,4 @@
-// script.js (CORREGIDO Y FUNCIONAL CON FIREBASE + MENÚ + UNIDADES)
+// script.js - Firebase completo y funcional
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
@@ -14,46 +14,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-export async function guardarEnFirebase(datos) {
-  try {
-    await addDoc(collection(db, "precios"), datos);
-    console.log("Datos guardados en Firebase");
-  } catch (e) {
-    console.error("Error al guardar en Firebase", e);
-  }
-}
-
 export function CargarUnidades() {
   const producto = document.getElementById('Producto').value;
   const equivalenciaSelect = document.getElementById('equivalencia');
   equivalenciaSelect.innerHTML = '';
 
   const unidadesGenerales = [
-    { value: 'g', label: 'Gramos (g)' },
-    { value: 'kg', label: 'Kilogramos (kg)' },
-    { value: 'lb', label: 'Libras (lb)' },
-    { value: 'a', label: 'Arroba (a)' },
-    { value: 'q', label: 'Quintal (q)' },
-    { value: 't', label: 'Tonelada (t)' }
+    { value: 'g', label: 'Gramos (g)' }, { value: 'kg', label: 'Kilogramos (kg)' },
+    { value: 'lb', label: 'Libras (lb)' }, { value: 'a', label: 'Arroba (a)' },
+    { value: 'q', label: 'Quintal (q)' }, { value: 't', label: 'Tonelada (t)' }
   ];
 
   const unidadesLiquidos = [
-    { value: 'ml', label: 'Mililitros (ml)' },
-    { value: 'l', label: 'Litros (l)' },
-    { value: 'gal', label: 'Galón (gal)' },
-    { value: 'bbl', label: 'Barril (bbl)' }
-  ];
-
-  const unidadesUnidad = [
-    { value: 'unidad', label: 'Unidad' }
+    { value: 'ml', label: 'Mililitros (ml)' }, { value: 'l', label: 'Litros (l)' },
+    { value: 'gal', label: 'Galón (gal)' }, { value: 'bbl', label: 'Barril (bbl)' }
   ];
 
   let opciones = unidadesGenerales;
-  if (["Aceite", "Leche en polvo", "Pescado"].includes(producto)) {
-    opciones = unidadesLiquidos;
-  } else if (["Huevo", "Pan"].includes(producto)) {
-    opciones = unidadesUnidad;
-  }
+
+  if (['Aceite', 'Leche en polvo', 'Pescado'].includes(producto)) opciones = unidadesLiquidos;
+  else if (['Huevo', 'Pan'].includes(producto)) opciones = [{ value: 'unidad', label: 'Unidad' }];
 
   equivalenciaSelect.innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
   opciones.forEach(u => {
@@ -61,49 +41,70 @@ export function CargarUnidades() {
   });
 }
 
-window.CargarUnidades = CargarUnidades;
+function mostrarToast(msg, color) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.background = color;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
 
-// Botón registrar
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btn-reportar').addEventListener('click', async () => {
-    const producto = document.getElementById('Producto').value;
-    const precio = parseFloat(document.getElementById('precio').value);
-    const equivalencia = document.getElementById('equivalencia').value;
-    const ciudad = document.getElementById('ciudad').value;
+document.getElementById('btn-reportar').addEventListener('click', async () => {
+  const producto = document.getElementById('Producto').value;
+  const precio = parseFloat(document.getElementById('precio').value);
+  const equivalencia = document.getElementById('equivalencia').value;
+  const ciudad = document.getElementById('ciudad').value;
 
-    if (producto && !isNaN(precio) && equivalencia && ciudad) {
-      const datos = {
-        producto,
-        precio,
-        equivalencia,
-        ciudad,
-        fecha: new Date().toISOString()
-      };
-      await guardarEnFirebase(datos);
-      document.getElementById('toast').textContent = 'Precio guardado con éxito';
-      document.getElementById('toast').classList.remove('hidden');
-      setTimeout(() => document.getElementById('toast').classList.add('hidden'), 3000);
-      document.getElementById('Producto').selectedIndex = 0;
-      document.getElementById('precio').value = '';
-      document.getElementById('equivalencia').innerHTML = '<option disabled selected>Selecciona la Unidad</option>';
-      document.getElementById('ciudad').selectedIndex = 0;
-    } else {
-      document.getElementById('toast').textContent = 'Completa todos los campos';
-      document.getElementById('toast').classList.remove('hidden');
-      document.getElementById('toast').style.background = '#e74c3c';
-      setTimeout(() => document.getElementById('toast').classList.add('hidden'), 3000);
+  if (producto !== 'Selecciona El Producto' && !isNaN(precio) && precio > 0 && equivalencia !== 'Selecciona la Unidad' && ciudad !== 'Selecciona Ciudad') {
+    try {
+      await addDoc(collection(db, "precios"), {
+        producto, precio, equivalencia, ciudad, fecha: new Date().toISOString()
+      });
+      mostrarToast('Precio guardado en Firebase.', '#27ae60');
+      cargarPrecios();
+    } catch (e) {
+      console.error("Error al guardar:", e);
+      mostrarToast('Error al guardar.', '#e74c3c');
     }
-  });
-
-  // Menú hamburguesa
-  document.getElementById('menu-toggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('hidden');
-  });
-
-  // Cambio de sección
-  window.mostrarSeccion = function(id) {
-    document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
-    document.getElementById('sidebar').classList.add('hidden');
-  };
+  } else {
+    mostrarToast('Completa todos los campos.', '#e74c3c');
+  }
 });
+
+async function cargarPrecios() {
+  const querySnapshot = await getDocs(collection(db, "precios"));
+  const tbody = document.getElementById('tabla-precios');
+  tbody.innerHTML = '';
+  if (querySnapshot.empty) {
+    tbody.innerHTML = '<tr><td colspan="4">No hay datos registrados.</td></tr>';
+    return;
+  }
+  querySnapshot.forEach((doc) => {
+    const d = doc.data();
+    tbody.innerHTML += `<tr>
+      <td>${d.producto}</td>
+      <td>${d.precio.toFixed(2)}</td>
+      <td>${d.equivalencia}</td>
+      <td>${d.ciudad}</td>
+    </tr>`;
+  });
+}
+
+// Mostrar precios al cargar
+window.addEventListener('load', () => {
+  cargarPrecios();
+  CargarUnidades();
+});
+
+// Menú lateral
+const menuToggle = document.getElementById('menu-toggle');
+menuToggle.addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('hidden');
+});
+
+window.mostrarSeccion = function(id) {
+  document.querySelectorAll('.card').forEach(sec => sec.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.getElementById('sidebar').classList.add('hidden');
+  if (id === 'registro') cargarPrecios();
+};
